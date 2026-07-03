@@ -32,14 +32,295 @@ backend/
 
 ---
 
+## Detailed Current Codebase Analysis
+
+### Frontend Architecture
+
+The frontend implements a **drag-and-drop visual pipeline builder** using ReactFlow. Here's how each component works:
+
+#### 1. App.js (Entry Point)
+```javascript
+function App() {
+  return (
+    <div>
+      <PipelineToolbar />  {/* Sidebar with draggable nodes */}
+      <PipelineUI />       {/* ReactFlow canvas */}
+      <SubmitButton />     {/* Submit button */}
+    </div>
+  );
+}
+```
+Simple container that renders three main components vertically.
+
+#### 2. store.js (Zustand Global State)
+The heart of the application - manages all pipeline state:
+
+```javascript
+export const useStore = create((set, get) => ({
+    nodes: [],      // Array of all nodes on canvas
+    edges: [],      // Array of all connections between nodes
+    nodeIDs: {},    // Tracks ID counters per node type
+    
+    // Generate unique ID like "customInput-1", "customInput-2"
+    getNodeID: (type) => { ... },
+    
+    // Add a new node to the canvas
+    addNode: (node) => { ... },
+    
+    // Handle node drag/select changes (ReactFlow callback)
+    onNodesChange: (changes) => { ... },
+    
+    // Handle edge changes (ReactFlow callback)
+    onEdgesChange: (changes) => { ... },
+    
+    // Create new edge when user connects two nodes
+    onConnect: (connection) => { ... },
+    
+    // Update a specific field in a node's data
+    updateNodeField: (nodeId, fieldName, fieldValue) => { ... },
+}));
+```
+
+**How state flows:**
+1. User drags node → `addNode()` called → `nodes[]` updated → ReactFlow re-renders
+2. User connects nodes → `onConnect()` called → `edges[]` updated → connection appears
+3. User edits field → `updateNodeField()` called → node data updated
+
+#### 3. ui.js (ReactFlow Canvas)
+Wraps ReactFlow library and handles drag-drop from toolbar:
+
+```javascript
+const nodeTypes = {
+  customInput: InputNode,
+  llm: LLMNode,
+  customOutput: OutputNode,
+  text: TextNode,
+};
+
+export const PipelineUI = () => {
+  // Get state and actions from Zustand store
+  const { nodes, edges, getNodeID, addNode, ... } = useStore(selector, shallow);
+  
+  // Handle drop from toolbar
+  const onDrop = useCallback((event) => {
+    const type = JSON.parse(event.dataTransfer.getData('application/reactflow')).nodeType;
+    const position = reactFlowInstance.project({ x: event.clientX, y: event.clientY });
+    const nodeID = getNodeID(type);  // e.g., "customInput-1"
+    
+    addNode({
+      id: nodeID,
+      type: type,
+      position: position,
+      data: { id: nodeID, nodeType: type }
+    });
+  }, []);
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      onDrop={onDrop}
+      ...
+    />
+  );
+};
+```
+
+#### 4. toolbar.js & draggableNode.js (Drag Source)
+Creates draggable buttons for each node type:
+
+```javascript
+// toolbar.js - Renders four draggable items
+<DraggableNode type='customInput' label='Input' />
+<DraggableNode type='llm' label='LLM' />
+<DraggableNode type='customOutput' label='Output' />
+<DraggableNode type='text' label='Text' />
+
+// draggableNode.js - HTML5 Drag API wrapper
+const onDragStart = (event, nodeType) => {
+  event.dataTransfer.setData('application/reactflow', JSON.stringify({ nodeType }));
+};
+```
+
+#### 5. Node Components (nodes/*.js)
+Each node is a React component that receives `id` and `data` from ReactFlow:
+
+**InputNode** - Has 1 output handle, 2 fields (name, type)
+```javascript
+export const InputNode = ({ id, data }) => {
+  const [currName, setCurrName] = useState(data?.inputName || '...');
+  const [inputType, setInputType] = useState(data.inputType || 'Text');
+  
+  return (
+    <div style={{width: 200, height: 80, border: '1px solid black'}}>
+      <span>Input</span>
+      <input value={currName} onChange={...} />
+      <select value={inputType} onChange={...}>...</select>
+      <Handle type="source" position={Position.Right} id={`${id}-value`} />
+    </div>
+  );
+}
+```
+
+**LLMNode** - Has 2 input handles (system, prompt), 1 output handle
+```javascript
+export const LLMNode = ({ id }) => {
+  return (
+    <div style={{width: 200, height: 80, border: '1px solid black'}}>
+      <Handle type="target" position={Position.Left} id={`${id}-system`} style={{top: '33%'}} />
+      <Handle type="target" position={Position.Left} id={`${id}-prompt`} style={{top: '66%'}} />
+      <span>This is a LLM.</span>
+      <Handle type="source" position={Position.Right} id={`${id}-response`} />
+    </div>
+  );
+}
+```
+
+**OutputNode** - Has 1 input handle, 2 fields (name, type)
+
+**TextNode** - Has 1 output handle, 1 text field
+
+#### 6. submit.js (Non-Functional)
+Currently just renders a button that does nothing:
+```javascript
+export const SubmitButton = () => {
+  return (
+    <div>
+      <button type="submit">Submit</button>  {/* No onClick handler! */}
+    </div>
+  );
+}
+```
+
+### Backend Architecture
+
+**main.py** - Minimal stub server:
+```python
+from fastapi import FastAPI, Form
+
+app = FastAPI()
+
+@app.get('/')
+def read_root():
+    return {'Ping': 'Pong'}
+
+@app.get('/pipelines/parse')
+def parse_pipeline(pipeline: str = Form(...)):
+    return {'status': 'parsed'}
+```
+
+---
+
+## Problems & Gaps (What We're Asked to Solve)
+
+### Problem 1: Code Duplication in Nodes
+**Current State:**
+- Each node file (inputNode, llmNode, outputNode, textNode) has 30-45 lines of similar code
+- Same patterns repeated: state hooks, handle rendering, inline styles
+- Adding a new node = copying an existing file and modifying
+
+**Example of duplication:**
+```javascript
+// inputNode.js
+<div style={{width: 200, height: 80, border: '1px solid black'}}>
+  <Handle type="source" position={Position.Right} id={`${id}-value`} />
+  ...
+</div>
+
+// outputNode.js - Nearly identical structure
+<div style={{width: 200, height: 80, border: '1px solid black'}}>
+  <Handle type="target" position={Position.Left} id={`${id}-value`} />
+  ...
+</div>
+```
+
+**Assessment Requirement:** Create abstraction so nodes are defined by configuration, not copy-paste code.
+
+### Problem 2: Poor/Inconsistent Styling
+**Current State:**
+- All nodes use `style={{width: 200, height: 80, border: '1px solid black'}}`
+- No visual distinction between node types
+- No hover states, selection feedback, or modern UI
+- Toolbar has basic styling, canvas is default ReactFlow
+
+**Assessment Requirement:** Create visually appealing, consistent design system.
+
+### Problem 3: TextNode Doesn't Parse Variables
+**Current State:**
+```javascript
+// textNode.js
+const [currText, setCurrText] = useState(data?.text || '{{input}}');
+// Just stores the text - doesn't parse {{variables}}!
+<input type="text" value={currText} onChange={...} />
+<Handle type="source" position={Position.Right} />  // Only 1 fixed output handle
+```
+
+**What's Missing:**
+1. No variable parsing - `{{name}}` is just text, not detected
+2. No dynamic handles - should create input handle for each variable
+3. No auto-resize - fixed 200x80 regardless of content length
+
+**Assessment Requirement:** Parse `{{variableName}}` patterns, create dynamic input handles for each unique variable.
+
+### Problem 4: Backend is Non-Functional
+**Current State:**
+```python
+@app.get('/pipelines/parse')  # Wrong! Should be POST
+def parse_pipeline(pipeline: str = Form(...)):  # Form with GET doesn't work
+    return {'status': 'parsed'}  # Returns static response, no logic
+```
+
+**What's Wrong:**
+1. Uses `GET` instead of `POST` for receiving data
+2. `Form(...)` doesn't work with GET requests
+3. No CORS headers - frontend can't call it
+4. No actual pipeline parsing logic
+5. No DAG validation
+
+**Submit button doesn't call backend:**
+```javascript
+// submit.js - just a static button
+<button type="submit">Submit</button>  // No fetch(), no onClick
+```
+
+**Assessment Requirement:** 
+- Backend: Accept POST with nodes/edges, validate DAG, return stats
+- Frontend: Send pipeline data on click, display results in alert
+
+### Problem 5: State Not Synced to Store
+**Current State in inputNode.js:**
+```javascript
+const [currName, setCurrName] = useState(data?.inputName || '...');
+const handleNameChange = (e) => {
+  setCurrName(e.target.value);  // Updates LOCAL state only!
+};
+```
+
+**What's Wrong:** Input changes only update component's local state, not the Zustand store. When you submit, `nodes[]` in store doesn't have the updated values.
+
+**The store has `updateNodeField()` but nodes don't use it:**
+```javascript
+// store.js - exists but unused
+updateNodeField: (nodeId, fieldName, fieldValue) => {
+  set({ nodes: get().nodes.map((node) => { ... }) });
+}
+```
+
+---
+
 ## Assessment Requirements Summary
 
-| Part | Goal | Key Implementation |
-|------|------|-------------------|
-| **1** | Node Abstraction | Create reusable `BaseNode` component |
-| **2** | Styling | Apply consistent dark theme styling |
-| **3** | Text Node | Dynamic handles for `{{variables}}` |
-| **4** | Backend | DAG validation with Kahn's algorithm |
+| Part | Problem Solved | Solution Approach |
+|------|----------------|-------------------|
+| **1** | Code duplication across 4 node files | Create `BaseNode` component + config-driven node creation |
+| **2** | Ugly/inconsistent UI with inline styles | CSS variables + dark theme + consistent styling |
+| **3** | TextNode doesn't parse `{{variables}}` | Regex parsing + `useUpdateNodeInternals()` for dynamic handles |
+| **4** | Backend stub + submit does nothing | FastAPI with Kahn's algorithm + fetch API call |
+| **Bonus** | Local state not synced to store | Use `updateNodeField()` from store in all nodes |
 
 ---
 
