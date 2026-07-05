@@ -11,3 +11,173 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Node Styles */
+.base-node {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  min-width: 200px;
+  color: #f1f5f9;
+  font-size: 12px;
+}
+
+.base-node.selected,
+.base-node:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.node-header {
+  background: #6366f1;
+  padding: 8px 12px;
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* Different colors for different node types */
+.base-node.customInput .node-header { background: #10b981; }
+.base-node.customOutput .node-header { background: #f59e0b; }
+.base-node.llm .node-header { background: #8b5cf6; }
+.base-node.text .node-header { background: #3b82f6; }
+.base-node.note .node-header { background: #64748b; }
+.base-node.math .node-header { background: #ef4444; }
+.base-node.timer .node-header { background: #14b8a6; }
+.base-node.logger .node-header { background: #f97316; }
+.base-node.join .node-header { background: #ec4899; }
+
+.node-body {
+  padding: 10px;
+}
+
+.node-body label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.node-body label span {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.node-body input,
+.node-body select,
+.node-body textarea {
+  width: 100%;
+  padding: 6px 8px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #f1f5f9;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.node-body input:focus,
+.node-body select:focus,
+.node-body textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.node-body textarea {
+  resize: none;
+  min-height: 40px;
+  font-family: monospace;
+}
+
+.variables-list {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* Toolbar */
+.toolbar {
+  background: #0f172a;
+  padding: 12px 16px;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.draggable-item {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: #f1f5f9;
+  font-size: 12px;
+  cursor: grab;
+  user-select: none;
+}
+
+.draggable-item:hover {
+  background: #334155;
+  border-color: #6366f1;
+}
+
+.draggable-item:active {
+  cursor: grabbing;
+}
+
+/* Submit Button */
+.submit-container {
+  background: #0f172a;
+  padding: 12px 16px;
+  border-top: 1px solid #1e293b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.submit-btn {
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submit-btn:hover {
+  background: #4f46e5;
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Canvas */
+.react-flow__node {
+  cursor: default;
+}
+
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background: #64748b;
+  border: 2px solid #1e293b;
+}
+
+.react-flow__handle-left {
+  left: -6px;
+}
+
+.react-flow__handle-right {
+  right: -6px;
+}
+
+.react-flow__handle:hover {
+  background: #6366f1;
+}
