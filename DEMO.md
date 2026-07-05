@@ -87,34 +87,35 @@ For production, change these to your deployed URLs.
 
 ### 5. Show Different Nodes (30 sec)
 
-**Math Node** - Demonstrates multi-input arithmetic:
-- Drag from toolbar to canvas
-- Shows 2 input handles (left side) labeled "a" and "b"
-- Shows 1 output handle (right side) labeled "result"
-- Select operation from dropdown: Add, Subtract, Multiply, Divide
-- Use case: "Connect two number outputs, performs calculation, passes result downstream"
+> **Note:** This is a visual pipeline builder. Nodes represent pipeline structure only - no actual data processing happens. The backend validates the graph structure (DAG check), not execution.
 
-**Note Node** - Demonstrates annotation-only nodes:
-- Drag to canvas
-- Shows NO handles at all (no inputs, no outputs)
-- Just a text area for writing comments
-- Use case: "For documenting your pipeline - doesn't affect data flow"
+**Math Node** - Visual representation of arithmetic operation:
+- Drag from toolbar → shows 2 input handles ("a", "b") + 1 output ("result")
+- Has operation dropdown (Add/Subtract/Multiply/Divide)
+- Purpose: Demonstrates a node with multiple inputs converging to one output
 
-**Join Node** - Demonstrates text concatenation:
-- Drag to canvas
-- Shows 2 input handles: "input1" and "input2"
-- Shows 1 output handle: "joined"
-- Has a separator field (default: space)
-- Use case: "Takes two text inputs, joins them with separator, outputs combined string"
+**Note Node** - Annotation node:
+- Drag to canvas → shows NO handles
+- Just a text area for comments
+- Purpose: Demonstrates a node with zero handles (doesn't participate in data flow)
+
+**Join Node** - Visual representation of text concatenation:
+- Shows 2 input handles + 1 output + separator field
+- Purpose: Demonstrates configurable multi-input node
+
+**Why these nodes matter for the assessment:**
+- Shows the abstraction system works with different configurations
+- Any node type can be created via config (handles, fields, styles)
+- The visual representation is complete; execution would be a separate backend feature
 
 **Quick comparison to show abstraction power:**
 ```
-Node Type    | Inputs | Outputs | Fields
--------------|--------|---------|------------------
-Math         | 2      | 1       | operation dropdown
-Note         | 0      | 0       | text area
-Join         | 2      | 1       | separator input
-Text         | dynamic| 1       | textarea (creates handles from {{vars}})
+Node Type    | Inputs | Outputs | Fields              | Purpose
+-------------|--------|---------|---------------------|---------------------------
+Math         | 2      | 1       | operation dropdown  | Multi-input, single output
+Note         | 0      | 0       | text area           | No handles (annotation)
+Join         | 2      | 1       | separator input     | Configurable connector
+Text         | dynamic| 1       | textarea            | Dynamic handle generation
 ```
 
 ---
